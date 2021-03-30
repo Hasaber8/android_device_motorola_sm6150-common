@@ -32,6 +32,11 @@ DEVICE_PACKAGE_OVERLAYS += \
     $(LOCAL_PATH)/overlay \
     $(LOCAL_PATH)/overlay-lineage
 
+ifeq ($(PRODUCT_USE_DYNAMIC_PARTITIONS), true)
+DEVICE_PACKAGE_OVERLAYS += \
+    $(LOCAL_PATH)/overlay-lineage-fastbootd
+endif
+
 PRODUCT_ENFORCE_RRO_TARGETS := *
 PRODUCT_ENFORCE_RRO_EXCLUDED_OVERLAYS += \
     $(LOCAL_PATH)/overlay-lineage/lineage-sdk \
@@ -43,12 +48,15 @@ AB_OTA_UPDATER := true
 AB_OTA_PARTITIONS += \
     boot \
     dtbo \
-    product \
-    recovery \
     system \
     vendor \
-    vbmeta \
-    vbmeta_system
+    vbmeta
+
+ifeq ($(PRODUCT_USE_DYNAMIC_PARTITIONS), true)
+AB_OTA_PARTITIONS += \
+    recovery \
+    product
+endif
 
 AB_OTA_POSTINSTALL_CONFIG += \
     RUN_POSTINSTALL_system=true \
@@ -58,10 +66,6 @@ AB_OTA_POSTINSTALL_CONFIG += \
 
 PRODUCT_PACKAGES += \
     otapreopt_script
-
-PRODUCT_BUILD_SUPER_PARTITION := false
-PRODUCT_SHIPPING_API_LEVEL := 29
-PRODUCT_USE_DYNAMIC_PARTITIONS := true
 
 # Properties
 -include $(LOCAL_PATH)/properties.mk
@@ -191,7 +195,6 @@ PRODUCT_PACKAGES += \
 
 # Common init scripts
 PRODUCT_PACKAGES += \
-    fstab.qcom \
     init.class_main.sh \
     init.crda.sh \
     init.mdm.sh \
@@ -219,8 +222,16 @@ PRODUCT_PACKAGES += \
     init.target.rc \
     ueventd.qcom.rc
 
+ifneq ($(PRODUCT_USE_DYNAMIC_PARTITIONS), true)
+PRODUCT_PACKAGES += \
+    fstab.qcom
+else
+PRODUCT_PACKAGES += \
+    fstab_dynamic.qcom
+
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/rootdir/etc/fstab.qcom:$(TARGET_COPY_OUT_RAMDISK)/fstab.qcom
+    $(LOCAL_PATH)/rootdir/etc/fstab_dynamic.qcom:$(TARGET_COPY_OUT_RAMDISK)/fstab.qcom
+endif
 
 # Cryptfshw
 PRODUCT_PACKAGES += \
@@ -259,8 +270,10 @@ PRODUCT_PACKAGES += \
     android.hardware.drm@1.3-service.clearkey
 
 # fastbootd
+ifeq ($(PRODUCT_USE_DYNAMIC_PARTITIONS), true)
 PRODUCT_PACKAGES += \
     fastbootd
+endif
 
 # For config.fs
 PRODUCT_PACKAGES += \
